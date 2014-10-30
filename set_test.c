@@ -89,17 +89,25 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    ret = zoo_acreate(zkhandle, "/123", "hello", 5,
+           &ZOO_OPEN_ACL_UNSAFE, 0 /* ZOO_SEQUENCE */,
+           zktest_string_completion, "acreate");
+    if (ret) {
+        fprintf(stderr, "Error %d for %s\n", ret, "acreate");
+        exit(EXIT_FAILURE);
+    }
     // struct ACL ALL_ACL[] = {{ZOO_PERM_ALL, ZOO_ANYONE_ID_UNSAFE}};
     // struct ACL_vector ALL_PERMS = {1, ALL_ACL};
     ret = 0;
 
+    int counter = 0;
     while (1) {
         ret = zoo_set(zkhandle, "/xyz", "hello", 5, -1);
-        printf("%s:%d \n", __FUNCTION__, __LINE__);
+        printf("%s:%d counter:%d\n", __FUNCTION__, __LINE__, counter++);
         if (ret) {
             fprintf(stderr, "Error %d for %s\n", ret, "zoo_set");
         }
-        sleep(1);
+        //sleep(1);
     }
 
     ret = zoo_aexists(zkhandle, "/xyz", 1, zktest_stat_completion, "aexists");

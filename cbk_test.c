@@ -18,6 +18,8 @@
 #include <zookeeper/zookeeper.h>
 #include <zookeeper/zookeeper_log.h>
 
+int g_counter = 0;
+
 void zktest_watcher_g(zhandle_t* zh, int type, int state,
         const char* path, void* watcherCtx)
 {
@@ -28,17 +30,32 @@ void zktest_watcher_g(zhandle_t* zh, int type, int state,
     printf("watcherCtx: %s\n", (char *)watcherCtx);
 }
 
+void zktest_string_completion(int rc, const char *name, const void *data)
+{
+    fprintf(stderr, "[%s]: rc = %d\n", (char*)(data==0?"null":data), rc);
+    if (!rc) {
+        fprintf(stderr, "\tname = %s\n", name);
+    }
+}
+
+void zktest_stat_completion(int rc, const struct Stat *stat, const void *data)
+{
+    fprintf(stderr, "[%s]: rc = %d\n", (char*)(data==0?"null":data), rc);
+}
+
 void zkexists_watcher_g(zhandle_t* zh, int type, int state,
         const char* path, void* watcherCtx)
 {
+    int ret;
     printf("%s:%d -----------------------\n", __FUNCTION__, __LINE__);
     printf("Something happened.\n");
     printf("type: %d\n", type);
     printf("state: %d\n", state);
     printf("path: %s\n", path);
+    printf("counter:%d\n", g_counter++);
     printf("watcherCtx: %s\n", (char *)watcherCtx);
     printf("%s:%d -----------------------\n", __FUNCTION__, __LINE__);
-    ret = zoo_awexists(zkhandle, "/xyz", zkexists_watcher_g, "hello exist watcher", zktest_string_completion, const void *data);
+    ret = zoo_awexists(zh, "/xyz", zkexists_watcher_g, "hello exist watcher", zktest_stat_completion, NULL);
     if (ret) {
         printf("%s:%d zoo_awexists going wrong, ret:%d\n", __FUNCTION__, __LINE__, ret);
     }
@@ -71,23 +88,17 @@ void zktest_dump_stat(const struct Stat *stat)
     stat->ephemeralOwner);
 }
 
+/*
 void zktest_stat_completion(int rc, const struct Stat *stat, const void *data)
 {
     fprintf(stderr, "%s: rc = %d Stat:\n", (char*)data, rc);
     zktest_dump_stat(stat);
 }
+*/
 
 void zktest_void_completion(int rc, const void *data)
 {
     fprintf(stderr, "[%s]: rc = %d\n", (char*)(data==0?"null":data), rc);
-}
-
-void zktest_string_completion(int rc, const char *name, const void *data)
-{
-    fprintf(stderr, "[%s]: rc = %d\n", (char*)(data==0?"null":data), rc);
-    if (!rc) {
-        fprintf(stderr, "\tname = %s\n", name);
-    }
 }
 
 int main(int argc, const char *argv[])
@@ -114,7 +125,7 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
     ret = 0;
-    ret = zoo_awexists(zkhandle, "/xyz", zkexists_watcher_g, "hello exist watcher", zktest_string_completion, const void *data);
+    ret = zoo_awexists(zkhandle, "/xyz", zkexists_watcher_g, "hello exist watcher", zktest_stat_completion, NULL);
     while (1) {
         sleep(1);
     }
