@@ -20,29 +20,6 @@
 
 int g_counter = 0;
 
-void zktest_stat_completion(int rc, const struct Stat *stat, const void *data)
-{
-    fprintf(stderr, "[%s]: rc = %d\n", (char*)(data==0?"null":data), rc);
-}
-
-void zkexists_watcher_g(zhandle_t* zh, int type, int state,
-        const char* path, void* watcherCtx)
-{
-    int ret;
-    ret = zoo_awexists(zh, "/xyz", zkexists_watcher_g, "hello exist watcher", zktest_stat_completion, NULL);
-    if (ret) {
-        printf("%s:%d zoo_awexists going wrong, ret:%d\n", __FUNCTION__, __LINE__, ret);
-    }
-    printf("%s:%d -----------------------\n", __FUNCTION__, __LINE__);
-    printf("Something happened.\n");
-    printf("type: %d\n", type);
-    printf("state: %d\n", state);
-    printf("path: %s\n", path);
-    printf("counter:%d\n", g_counter++);
-    printf("watcherCtx: %s\n", (char *)watcherCtx);
-    printf("%s:%d -----------------------\n", __FUNCTION__, __LINE__);
-}
-
 void zktest_watcher_g(zhandle_t* zh, int type, int state,
         const char* path, void* watcherCtx)
 {
@@ -58,6 +35,29 @@ void zktest_string_completion(int rc, const char *name, const void *data)
     fprintf(stderr, "[%s]: rc = %d\n", (char*)(data==0?"null":data), rc);
     if (!rc) {
         fprintf(stderr, "\tname = %s\n", name);
+    }
+}
+
+void zktest_stat_completion(int rc, const struct Stat *stat, const void *data)
+{
+    fprintf(stderr, "[%s]: rc = %d\n", (char*)(data==0?"null":data), rc);
+}
+
+void zkexists_watcher_g(zhandle_t* zh, int type, int state,
+        const char* path, void* watcherCtx)
+{
+    int ret;
+    printf("%s:%d -----------------------\n", __FUNCTION__, __LINE__);
+    printf("Something happened.\n");
+    printf("type: %d\n", type);
+    printf("state: %d\n", state);
+    printf("path: %s\n", path);
+    printf("counter:%d\n", g_counter++);
+    printf("watcherCtx: %s\n", (char *)watcherCtx);
+    printf("%s:%d -----------------------\n", __FUNCTION__, __LINE__);
+    ret = zoo_awexists(zh, "/xyz", zkexists_watcher_g, "hello exist watcher", zktest_stat_completion, NULL);
+    if (ret) {
+        printf("%s:%d zoo_awexists going wrong, ret:%d\n", __FUNCTION__, __LINE__, ret);
     }
 }
 
@@ -106,6 +106,7 @@ int main(int argc, const char *argv[])
     const char* host = "127.0.0.1:4180,127.0.0.1:4181,"
         "127.0.0.1:4182";
     int timeout = 30000;
+    int ret;
     
     zoo_set_debug_level(ZOO_LOG_LEVEL_WARN);
     zhandle_t* zkhandle = zookeeper_init(host,
@@ -115,27 +116,8 @@ int main(int argc, const char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    int ret = 0;
-    // struct ACL ALL_ACL[] = {{ZOO_PERM_ALL, ZOO_ANYONE_ID_UNSAFE}};
-    // struct ACL_vector ALL_PERMS = {1, ALL_ACL};
-    ret = zoo_acreate(zkhandle, "/xyz", "hello", 5,
-           &ZOO_OPEN_ACL_UNSAFE, ZOO_SEQUENCE | ZOO_EPHEMERAL,
-           zktest_string_completion, "acreate");
-    if (ret) {
-        fprintf(stderr, "Error %d for %s\n", ret, "acreate");
-        exit(EXIT_FAILURE);
-    }
-
-    ret = zoo_acreate(zkhandle, "/xyz", "hello", 5,
-           &ZOO_OPEN_ACL_UNSAFE, ZOO_SEQUENCE | ZOO_EPHEMERAL,
-           zktest_string_completion, "acreate");
-    if (ret) {
-        fprintf(stderr, "Error %d for %s\n", ret, "acreate");
-        exit(EXIT_FAILURE);
-    }
-
+    ret = 0;
     ret = zoo_awexists(zkhandle, "/xyz", zkexists_watcher_g, "hello exist watcher", zktest_stat_completion, NULL);
-    printf("%s:%d ret:%d\n", __FUNCTION__, __LINE__, ret);
     while (1) {
         sleep(1);
     }
